@@ -21,7 +21,6 @@ const Customer = () => {
   const [selectedTimeAcquired, setSelectedTimeAcquired] = useState("");
   const [showEditOverlay, setShowEditOverlay] = useState(false);
   const [currentCustomer, setCurrentCustomer] = useState(null);
-  const [customerCountToday, setCustomerCountToday] = useState(0);
   const [todayCustomers, setTodayCustomers] = useState([]);
   const convertToLocalTime = (utcTime) => {
     return new Date(utcTime).toLocaleTimeString([], {

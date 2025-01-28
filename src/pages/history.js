@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Calendar from "react-calendar";
 import axios from "axios";
 import "react-calendar/dist/Calendar.css";
@@ -8,8 +8,6 @@ import API_URL from "./api";
 const History = () => {
   const [date, setDate] = useState(new Date()); // Selected date
   const [tableData, setTableData] = useState([]); // Data for the table
-  const [customerCount, setCustomerCount] = useState(0); // Customer count for the selected date
-  const [monthlyCustomerCount, setMonthlyCustomerCount] = useState(0); // Customer count for the month
 
   // Fetch data for the selected date
   const fetchCustomersByDate = async (selectedDate) => {
@@ -54,7 +52,6 @@ const History = () => {
   // Calendar onChange handler (check if it's a full date or just month)
   const onChange = (newDate) => {
     const selectedMonth = newDate.getMonth(); // Get the selected month
-    const selectedYear = newDate.getFullYear(); // Get the selected year
 
     // If it's the first day of the month or a day within the month, fetch data for the whole month
     if (newDate.getDate() === 1 || selectedMonth !== newDate.getMonth()) {
