@@ -3,6 +3,7 @@ import Calendar from "react-calendar";
 import axios from "axios";
 import "react-calendar/dist/Calendar.css";
 import "../App.css";
+import API_URL from "./api";
 
 const History = () => {
   const [date, setDate] = useState(new Date()); // Selected date
@@ -13,7 +14,7 @@ const History = () => {
   // Fetch data for the selected date
   const fetchCustomersByDate = async (selectedDate) => {
     try {
-      const response = await axios.get("http://localhost:8000/api/customers-by-date", {
+      const response = await axios.get(`${API_URL}/api/customers-by-date`, {
         params: { date: selectedDate },
       });
       setTableData(response.data);
@@ -26,7 +27,7 @@ const History = () => {
   // Fetch data for the selected month
   const fetchCustomersByMonth = async (selectedMonth) => {
     try {
-      const response = await axios.get("http://localhost:8000/api/customers-by-month", {
+      const response = await axios.get(`${API_URL}/api/customers-by-month`, {
         params: { month: selectedMonth },
       });
       setTableData(response.data);

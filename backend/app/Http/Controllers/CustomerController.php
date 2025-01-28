@@ -92,7 +92,6 @@ public function update(Request $request, $id)
     return response()->json($customer);
 }
 
-// In CustomerController.php
 
 public function stopCustomerTime(Request $request, $id)
 {
@@ -131,7 +130,6 @@ public function getCustomersByDate(Request $request)
 
     $date = $request->query('date');
 
-    // Use created_at to filter the customers by the specific day
     $customers = Customer::whereDate('created_at', $date)->get();
 
     return response()->json($customers);
@@ -145,7 +143,6 @@ public function getCustomersByMonth(Request $request)
 
     $month = $request->query('month');
 
-    // Use created_at to filter customers by the specific month
     $customers = Customer::whereMonth('created_at', Carbon::parse($month)->month)
                           ->whereYear('created_at', Carbon::parse($month)->year)
                           ->get();
@@ -153,7 +150,78 @@ public function getCustomersByMonth(Request $request)
     return response()->json($customers);
 }
 
+public function countCustomersToday(Request $request)
+{
+    // Get today's date in 'YYYY-MM-DD' format
+    $today = now()->toDateString();  // You can also use 'Carbon::today()->toDateString()' if you prefer.
 
+    // Count customers who were created today
+    $customerCount = Customer::whereDate('created_at', $today)->count();
+
+    return response()->json([
+        'customer_count' => $customerCount,
+    ]);
+}
+
+public function getDashboardData()
+{
+    // Get the total number of customers
+    $totalCustomers = Customer::count();
+
+    // Get the most occupied table with the count of customers
+    $mostOccupiedTable = Customer::select('table_no')
+                                ->selectRaw('count(*) as count')
+                                ->groupBy('table_no')
+                                ->orderByDesc('count')
+                                ->first();
+
+    // Get the most availed time with the count of customers
+    $mostTimeAvail = Customer::select('time_acquired')
+                             ->selectRaw('count(*) as count')
+                             ->groupBy('time_acquired')
+                             ->orderByDesc('count')
+                             ->first();
+
+    // Count customers for the most occupied table
+    $customersAtMostOccupiedTable = Customer::where('table_no', $mostOccupiedTable->table_no)
+                                            ->count();
+
+    // Count customers for the most availed time
+    $customersAtMostTimeAvail = Customer::where('time_acquired', $mostTimeAvail->time_acquired)
+                                        ->count();
+
+    // Get monthly customer count (Jan - Dec)
+    $monthlyData = Customer::selectRaw('MONTH(created_at) as month, count(*) as customers')
+                           ->groupBy('month')
+                           ->orderBy('month')
+                           ->get()
+                           ->map(function ($item) {
+                               // Map numerical months to month names (Jan - Dec)
+                               $monthNames = [
+                                   1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+                                   5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Aug',
+                                   9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec'
+                               ];
+                               $item->month = $monthNames[$item->month];
+                               return $item;
+                           });
+
+    // Returning data in a cleaner way
+    return response()->json([
+        'totalCustomers' => $totalCustomers,
+        'mostOccupiedTable' => [
+            'table_no' => $mostOccupiedTable->table_no,
+            'count' => $mostOccupiedTable->count,
+            'customers' => $customersAtMostOccupiedTable,
+        ],
+        'mostTimeAvail' => [
+            'time_acquired' => $mostTimeAvail->time_acquired,
+            'count' => $mostTimeAvail->count,
+            'customers' => $customersAtMostTimeAvail,
+        ],
+        'monthlyData' => $monthlyData, // Add monthly data
+    ]);
+}
 
 
 

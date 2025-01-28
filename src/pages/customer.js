@@ -3,7 +3,8 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { FaEdit, FaRegStopCircle  } from "react-icons/fa";
 import { IoArchive } from "react-icons/io5";
-
+import moment from "moment";
+import API_URL from "./api";
 const Customer = () => {
   const [tableData, setTableData] = useState([]);
   const [showOverlay, setShowOverlay] = useState(false);
@@ -20,8 +21,8 @@ const Customer = () => {
   const [selectedTimeAcquired, setSelectedTimeAcquired] = useState("");
   const [showEditOverlay, setShowEditOverlay] = useState(false);
   const [currentCustomer, setCurrentCustomer] = useState(null);
-
-
+  const [customerCountToday, setCustomerCountToday] = useState(0);
+  const [todayCustomers, setTodayCustomers] = useState([]);
   const convertToLocalTime = (utcTime) => {
     return new Date(utcTime).toLocaleTimeString([], {
       hour: "2-digit",
@@ -29,13 +30,37 @@ const Customer = () => {
       hour12: true,
     });
   };
-  
+
+  useEffect(() => {
+    // Get today's date in 'YYYY-MM-DD' format
+    const todayDate = moment().format("YYYY-MM-DD");
+
+    // Filter only today's customers (ignores archived status)
+    const filteredCustomers = tableData.filter(
+      (data) => moment(data.created_at).format("YYYY-MM-DD") === todayDate
+    );
+
+    setTodayCustomers(filteredCustomers);
+  }, [tableData]);
+
+
+  useEffect(() => {
+    // Fetch the number of customers created today
+    axios
+      .get(`${API_URL}/api/count-customers-today`)
+      .then((response) => {
+        setCustomerCountToday(response.data.customer_count);
+      })
+      .catch((error) => {
+        console.error("Error fetching customer count:", error);
+      });
+  }, []);
 
   // Fetch customer data when component mounts
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/api/customers");
+        const response = await axios.get(`${API_URL}/api/customers`);
         setTableData(response.data);
       } catch (error) {
         console.error("Error fetching customer data:", error);
@@ -61,7 +86,7 @@ const Customer = () => {
     };
 
     try {
-      const response = await axios.post("http://localhost:8000/api/customers", customerData);
+      const response = await axios.post(`${API_URL}/api/customers`, customerData);
       setTableData((prevData) => [...prevData, response.data]);
       setNewCustomer({ name: "", tableNo: 1, timeAcquired: "1 Hour" });
       setShowOverlay(false);
@@ -117,7 +142,7 @@ const Customer = () => {
 
   const handleSaveChanges = async () => {
     try {
-      const response = await axios.put(`http://localhost:8000/api/customers/${currentCustomer.id}`, currentCustomer);
+      const response = await axios.put(`${API_URL}/api/customers/${currentCustomer.id}`, currentCustomer);
       setTableData((prevData) =>
         prevData.map((data) =>
           data.id === currentCustomer.id ? response.data : data
@@ -171,7 +196,7 @@ const Customer = () => {
   
     if (result.isConfirmed) {
       try {
-        const response = await axios.put(`http://localhost:8000/api/customers/archive/${customer.id}`);
+        const response = await axios.put(`${API_URL}/api/customers/archive/${customer.id}`);
   
         if (response.data.archive) {
           setTableData((prevData) =>
@@ -214,7 +239,7 @@ const Customer = () => {
     if (result.isConfirmed) {
       try {
         // Send PUT request to update status to 'Complete'
-        const response = await axios.put(`http://localhost:8000/api/customers/${customer.id}/stop`);
+        const response = await axios.put(`${API_URL}/api/customers/${customer.id}/stop`);
   
         // Update the table data with the new status
         setTableData((prevData) =>
@@ -419,30 +444,29 @@ const Customer = () => {
   </div>
 
   <div className="container-status">
-  {Array.from({ length: 10 }, (_, index) => {
-    const tableNo = index + 1;
-    // Filter customers at the table and include all statuses (Active, Complete, Archived)
-    const customersAtTable = tableData.filter((data) => data.table_no === tableNo);
-    
-    // Check if there is any customer with "Active" status to mark it as "Occupied"
-    const isOccupied = customersAtTable.some((data) => data.status === 'Active');
-    const customerCount = customersAtTable.length;
+      {Array.from({ length: 10 }, (_, index) => {
+        const tableNo = index + 1;
 
-    return (
-      <div className="container" key={tableNo}>
-        <span className="container-number">Table No. {tableNo}</span>
-        <span className={`container-status-label ${isOccupied ? 'occupied' : 'available'}`}>
-          {isOccupied ? 'Occupied' : 'Available'}
-        </span>
-        {customerCount > 0 && (
-          <span className="container-status-label">
-            Customer on this day: {customerCount}
-          </span>
-        )}
-      </div>
-    );
-  })}
-</div>
+        // Get today's customers at this table (INCLUDING ARCHIVED)
+        const customersAtTableToday = todayCustomers.filter((data) => data.table_no === tableNo);
+        const isOccupied = customersAtTableToday.some((data) => data.status === "Active"); // Only for "Occupied" status
+        const customerCountToday = customersAtTableToday.length; // Count includes archived customers
+
+        return (
+          <div className="container" key={tableNo}>
+            <span className="container-number">Table No. {tableNo}</span>
+            <span className={`container-status-label ${isOccupied ? "occupied" : "available"}`}>
+              {isOccupied ? "Occupied" : "Available"}
+            </span>
+            {customerCountToday > 0 && (
+              <span className="container-status-label">
+                Customers today: {customerCountToday} {/* Includes archived customers */}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
 
 </div>
 
